@@ -1,6 +1,7 @@
 package org.example.database;
 
 import org.example.props.Props;
+import org.flywaydb.core.Flyway;
 
 import java.sql.*;
 
@@ -13,7 +14,8 @@ public class Database {
         String connectionUrl = Props.getConnectionUrl();
 
         try {
-            connection = DriverManager.getConnection(connectionUrl);
+            this.connection = DriverManager.getConnection(connectionUrl);
+            flywayMigration(connectionUrl);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -31,31 +33,17 @@ public class Database {
         return connection;
     }
 
-    public int initDB(String sql) {
-        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            return preparedStatement.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-
-            return -1;
-        }
-    }
-
-    public int executeUpdate(String sql) {
-        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            return preparedStatement.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-
-            return -1;
-        }
-    }
-
     public void close() {
         try {
             connection.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    private void  flywayMigration(String url) {
+        Flyway flyway = Flyway.configure().dataSource(url, null, null).load();
+
+        flyway.migrate();
     }
 }

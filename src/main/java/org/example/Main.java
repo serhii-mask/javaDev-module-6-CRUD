@@ -1,26 +1,29 @@
 package org.example;
 
-import org.example.services.DatabaseInitService;
-import org.example.services.DatabasePopulateService;
-import org.example.services.DatabaseQueryService;
+import org.example.repository.ClientService;
 import org.example.database.Database;
+import org.example.entities.Client;
 
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) throws SQLException {
-        DatabaseInitService.main(args);
-        DatabasePopulateService.main(args);
 
-        Database database = Database.getInstance();
-        DatabaseQueryService queryService = new DatabaseQueryService(database);
+        Connection connection = Database.getInstance().getConnection();
+        ClientService clientService = new ClientService(connection);
 
-        System.out.println("FindMaxSalaryWorker() = " + queryService.findMaxSalaryWorker());
-        System.out.println("FindMaxProjectsClient() = " + queryService.findMaxProjectsClient());
-        System.out.println("FindLongestProject() = " + queryService.findLongestProject());
-        System.out.println("FindYoungestEldestWorkers() = " + queryService.findYoungestEldestWorkers());
-        System.out.println("PrintProjectPrices() = " + queryService.printProjectPrices());
+        System.out.println("create = " + clientService.create("Mark Avreliy"));
+        System.out.println("getById = " + clientService.getById(3));
+        clientService.setName(5, "Platon");
+        clientService.deleteById(1);
+        List<Client> clients = clientService.listAll();
 
-        database.close();
+        connection.close();
+
+        for (Client client : clients) {
+            System.out.println("client = " + client);
+        }
     }
 }
