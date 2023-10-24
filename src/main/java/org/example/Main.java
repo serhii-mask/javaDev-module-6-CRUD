@@ -17,7 +17,8 @@ public class Main {
         System.out.println("create = " + clientService.create("Mark Avreliy"));
         System.out.println("getById = " + clientService.getById(3));
         clientService.setName(5, "Platon");
-        clientService.deleteById(1);
+        clientService.deleteById(3);
+        System.out.println("create = " + clientService.create("Karl Marks"));
         List<Client> clients = clientService.listAll();
 
         connection.close();

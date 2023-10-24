@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS project (
 	client_id INT,
 	start_date DATE,
 	finish_date DATE,
-	FOREIGN KEY (client_id) REFERENCES client(id)
+	FOREIGN KEY (client_id) REFERENCES client(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS project_worker (

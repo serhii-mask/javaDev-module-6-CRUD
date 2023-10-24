@@ -2,10 +2,7 @@ package org.example.repository;
 
 import org.example.entities.Client;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,14 +11,19 @@ import static org.example.utils.Validator.validateName;
 public class ClientService {
 
     private static final String INSERN_STRING = "INSERT INTO client (name) VALUES (?)";
-    private static final String SELECT_MAX_ID_STRING = "SELECT max(id) AS maxId FROM client";
     private static final String SELECT_BY_ID_STRING = "SELECT name FROM client WHERE id = ?";
     private static final String UPDATE_USER_NAME_STRING = "UPDATE client SET name = ? WHERE id = ?";
-    private static final String DELETE_USER_BY_ID_STRING = "DELETE FROM client WHERE id = ?";
+    private static final String DELETE_USER_BY_ID_STRING = """
+            SET REFERENTIAL_INTEGRITY FALSE;
+            BEGIN TRANSACTION;
+            DELETE FROM client
+               WHERE id IN (SELECT id FROM project WHERE id = ?);
+            DELETE FROM project WHERE client_id = ?;
+            SET REFERENTIAL_INTEGRITY TRUE;
+            """;
     private static final String SELECT_ALL_USERS_STRING = "SELECT id, name FROM CLIENT";
 
     private PreparedStatement insertStatement;
-    private PreparedStatement selectMaxIdStatement;
     private PreparedStatement selectByIdStatement;
     private PreparedStatement updateUserNameStatement;
     private PreparedStatement deleteUserByIdStatement;
@@ -30,8 +32,7 @@ public class ClientService {
 
     public ClientService(Connection connection) {
         try {
-            insertStatement = connection.prepareStatement(INSERN_STRING);
-            selectMaxIdStatement = connection.prepareStatement(SELECT_MAX_ID_STRING);
+            insertStatement = connection.prepareStatement(INSERN_STRING, Statement.RETURN_GENERATED_KEYS);
             selectByIdStatement = connection.prepareStatement(SELECT_BY_ID_STRING);
             updateUserNameStatement = connection.prepareStatement(UPDATE_USER_NAME_STRING);
             deleteUserByIdStatement = connection.prepareStatement(DELETE_USER_BY_ID_STRING);
@@ -48,9 +49,9 @@ public class ClientService {
             insertStatement.setString(1, name);
             insertStatement.executeUpdate();
 
-            try (ResultSet resultSet = selectMaxIdStatement.executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getLong("maxId");
+            try (ResultSet generatedKeys = insertStatement.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    return generatedKeys.getLong(1);
                 }
             }
         } catch (SQLException e) {
@@ -84,7 +85,7 @@ public class ClientService {
 
             int result = updateUserNameStatement.executeUpdate();
             if (result == 0) {
-                throwClientNotFoundException(id);
+                throw new IllegalArgumentException("Client with ID " + id + " not found");
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -94,10 +95,8 @@ public class ClientService {
     public void deleteById(long id) {
         try {
             deleteUserByIdStatement.setLong(1, id);
-            int result = deleteUserByIdStatement.executeUpdate();
-            if (result == 0) {
-                throwClientNotFoundException(id);
-            }
+            deleteUserByIdStatement.setLong(2, id);
+            deleteUserByIdStatement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -118,9 +117,5 @@ public class ClientService {
         }
 
         return clients;
-    }
-
-    private void throwClientNotFoundException(long id) {
-        throw new IllegalArgumentException("Client with ID " + id + " not found");
     }
 }
